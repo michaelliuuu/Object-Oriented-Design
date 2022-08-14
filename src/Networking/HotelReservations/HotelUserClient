@@ -1,0 +1,103 @@
+import java.io.*;
+import java.net.Socket;
+import java.util.Scanner;
+
+public class HotelUserClient implements Protocol{
+
+    public static void main(String[] args) {
+
+        try(Socket s = new Socket("localhost", PORT)){
+
+            Scanner input = new Scanner(System.in);
+
+            InputStream inStream = s.getInputStream();
+            OutputStream outStream = s.getOutputStream();
+
+            DataInputStream in = new DataInputStream(inStream);
+            DataOutputStream out = new DataOutputStream(outStream);
+
+            String response = in.readUTF();
+            System.out.println("Receiving: " + response);
+
+            String n = "";
+            String command = "";
+            int first;
+            int last;
+            int chose;
+
+            //first ask for username
+            System.out.print("What is your name?: ");
+            n = input.next();
+            out.writeUTF(USER);
+            out.writeUTF(n);
+            out.flush();
+            System.out.println("Receiving: " + in.readUTF());
+
+            while(!command.equals(QUIT)) {
+                //display menu
+                System.out.println("---Hotel Menu---");
+                System.out.println("1. New User");
+                System.out.println("2. Availability");
+                System.out.println("3. Reserve");
+                System.out.println("4. Cancel");
+                System.out.println("5. Quit");
+                System.out.print("What is your input?: ");
+                chose = input.nextInt();
+
+                //display choices
+                switch(chose) {
+                    case 1:
+                        command = "USER";
+                        System.out.print("What is your name?: ");
+                        n = input.next();
+                        out.writeUTF(command);
+                        out.writeUTF(n);
+                        out.flush();
+                        System.out.println("Receiving: " + in.readUTF());
+                        break;
+
+                    case 2:
+                        command = "AVAIL";
+                        out.writeUTF(command);
+                        out.flush();
+                        System.out.println("Receiving: " + in.readUTF());
+                        break;
+
+                    case 3:
+                        command = RESERVE;
+                        System.out.println("Start day: ");
+                        first = input.nextInt();
+                        System.out.println("Last day: ");
+                        last = input.nextInt();
+
+                        out.writeUTF(command);
+                        out.writeInt(first);
+                        out.writeInt(last);
+                        out.flush();
+                        System.out.println("Receiving: " + in.readUTF());
+                        break;
+
+                    case 4:
+                        command = "CANCEL";
+                        out.writeUTF(command);
+                        out.flush();
+                        System.out.println("Receiving: " + in.readUTF());
+                        break;
+
+                    case 5:
+                        command = "QUIT";
+                        out.writeUTF(command);
+                        out.flush();
+                        System.out.println("Receiving: " + in.readUTF());
+                        break;
+
+                    default:
+                        System.out.println("Invalid command.");
+                }
+            }
+        }
+        catch(IOException e){
+            System.out.println(e.getStackTrace());
+        }
+    }
+}
