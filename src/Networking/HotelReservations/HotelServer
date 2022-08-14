@@ -1,0 +1,132 @@
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class HotelServer implements Protocol{
+    public static void main(String[] args) throws IOException {
+
+        //create server socket
+        Hotel hotel = new Hotel();
+        ServerSocket s = new ServerSocket(PORT);
+
+        //wait until client accepts the server before starting
+        while(true) {
+            System.out.println("Waiting for clients to connect...");
+            Socket client = s.accept();
+            System.out.println("Client connected.");
+            HotelService service = new HotelService(client, hotel);
+            Thread t = new Thread(service);
+            t.start();
+        }
+    }
+}
+
+class HotelService implements Runnable, Protocol {
+
+    //data
+    private Socket client;
+    private DataInputStream in;
+    private DataOutputStream out;
+    private Hotel hotel;
+    private String n;
+
+    //constructor
+    public HotelService(Socket client, Hotel hotel) {
+        this.client = client;
+        this.hotel = hotel;
+    }
+
+    //methods
+    @Override
+    public void run() {
+        try {
+            in = new DataInputStream(client.getInputStream());
+            out = new DataOutputStream(client.getOutputStream());
+            doService();
+
+        } catch(IOException e) {
+            System.out.println("Something is wrong.");
+
+        } finally{
+            try {
+                client.close();
+            } catch(Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+    }
+
+    private void doService() throws IOException {
+
+        //data
+        String command = "";
+        int first = 0;
+        int last = 0;
+
+        //welcome message to client
+        out.writeUTF("Welcome, from the server to the client.");
+
+        //setting the user when client connects
+        command = in.readUTF();
+        if(!command.equals(USER)) {
+            out.writeUTF("Must input name of user first.");
+            out.flush();
+            command = QUIT;
+        }
+        else {
+            n = in.readUTF();
+            out.writeUTF("Welcome, " + n + ".");
+            out.flush();
+        }
+
+        //going through each command
+        while(!command.equals(QUIT)) {
+            command = in.readUTF();
+            switch(command) {
+                case USER:
+                    n = in.readUTF();
+                    out.writeUTF("Welcome, " + n);
+                    out.flush();
+                    break;
+
+                case RESERVE:
+                    first = in.readInt();
+                    last = in.readInt();
+                    if(hotel.requestReservation(n, first, last)) {
+                        out.writeUTF(n + ", your reservation has been made from the dates " + first + " to " + last + ".");
+                    }
+                    else {
+                        out.writeUTF(n + ", your reservation is unsuccessful from the dates " + first + " to " + last + ".");
+                    }
+                    out.flush();
+                    break;
+
+                case CANCEL:
+                    if(hotel.cancelReservation(n)) {
+                        out.writeUTF(n + ", your reservation has been cancelled.");
+                    }
+                    else {
+                        out.writeUTF(n + ", you did not have a reservation to cancel");
+                    }
+                    out.flush();
+                    break;
+
+                case AVAIL:
+                    out.writeUTF(hotel.reservationInformation());
+                    out.flush();
+                    break;
+
+                case QUIT:
+                    out.writeUTF(CLOSED);
+                    out.flush();
+                    break;
+
+                default:
+                    out.writeUTF(INVALID_COMMAND);
+                    out.flush();
+            }
+        }
+    }
+}
