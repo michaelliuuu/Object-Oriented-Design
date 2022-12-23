@@ -1,4 +1,4 @@
-Notable projects that I have done in the Langara class CPSC 1181.
+Notable projects that I have completed in school for object-oriented programming.
 
 Concepts learned: 
   - objects
